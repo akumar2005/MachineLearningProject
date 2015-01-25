@@ -1,0 +1,177 @@
+---
+title       : Course Project Writeup 
+subtitle    : for Practical Machiine Learning on Cousera
+author      : Ashish Kumar
+job         : Research
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
+---
+
+## Overview 
+This document describes the analysis conducted for the project from the John
+Hopkins' Coursera course "Practical Machine Learning" in the Data Science specialization.
+The data for this assignment comes from here: http://groupware.les.inf.puc-rio.br/har , and contains information from belt, forearm, arm, and dumbbell accelerometers. The data are split into a training group (19,622) observations and testing group (20 observations). Participants in this study were asked to perform barbell lifts correctly and incorrectly in 5 different ways. Participants were equipped with sensors on the arm, belt and dumbbell itself. The goal of your project is to predict the manner in which they did the exercise and apply the prediction model to predict 20 different test cases. 
+
+----
+
+## Feature Selection and Data pre-processing
+
+Load training data
+
+```{r}
+trainingAll <- read.csv("pml-training.csv",na.strings=c("NA",""))
+dim(trainingAll);
+head(trainingAll);
+```
+
+Looking closely at the data we find that : (a) training data have 19622 observations of 160 variables. Last variable, "classe", is a target for our model. (b) some columns have a lot of missing (NA) values and we could discard those columns in building model. 
+
+```{r}
+NAs <- apply(trainingAll, 2, function(x) { sum(is.na(x)) })
+training <- trainingAll[, which(NAs == 0)];
+dim(training); # This leaves 60 variables
+```
+
+We can also ignore useless variables "X", "user name" , "new windwow", "num window", and all time variables, which can't be predictors.
+
+```{r}
+removeIndex <- grep("timestamp|X|user_name|new_window|num_window", names(training))
+training <- training[, -removeIndex]
+dim(training); # This leaves 52+1 target variables
+```
+
+----
+
+## Data Partitioning and Cross Validation
+
+The cleaned data set was partitioned by the classe variable to obtain a 75% training set and a 25% test set. This provides a test set (independent from the 20 cases provided) for cross validation. 
+
+```{r}
+set.seed(1333)
+library(caret)
+trainIndex <- createDataPartition(y = training$classe, p=0.75,list=FALSE)
+trainData<-training[trainIndex,];
+testData<-training[-trainIndex,];
+dim(trainData); # 14718    53
+dim(testData); # 4904   53
+```
+
+----
+
+## Predicion Process
+Since we have a multitude of possible predictors, we decide to use random forest algorithm with all 52 predictor variables. Random forest trees were generated for the training dataset using 5-fold cross-validation. 
+
+```{r}
+fitControl<-trainControl(method="cv", number=5, allowParallel=T, verbose=T)
+rffit<-train(trainData$classe~.,data=trainData, method="rf", trControl=fitControl, verbose=F)
+```
+
+```{r, results='hide'}
+print(rffit) # Random Forest output
+```
+
+#Random Forest 
+
+#14718 samples
+#   52 predictor
+#    5 classes: 'A', 'B', 'C', 'D', 'E' 
+
+#No pre-processing
+#Resampling: Cross-Validated (5 fold) 
+
+#Summary of sample sizes: 11775, 11773, 11775, 11775, 11774 
+
+#Resampling results across tuning parameters:
+
+#  mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
+#   2    0.9915754  0.9893426  0.003215497  0.004067993
+#  27    0.9914395  0.9891705  0.002521591  0.003192083
+#  52    0.9851209  0.9811764  0.003430585  0.004342200
+
+#Accuracy was used to select the optimal model using  the largest value.
+#The final value used for the model was mtry = 2. 
+
+----
+
+##Prediction Outcome and Out-of-Sample Error
+
+Now we can apply the model on the test data set.
+
+```{r}
+predrf<-predict(rffit, newdata=testData)
+confusionMatrix(predrf, testData$classe)
+```
+
+#Confusion Matrix and Statistics
+
+#          Reference
+#Prediction    A    B    C    D    E
+#         A 1395   11    0    0    0
+#         B    0  936    2    0    0
+#         C    0    2  853   11    0
+#         D    0    0    0  792    4
+#         E    0    0    0    1  897
+
+#Overall Statistics
+                                         
+#               Accuracy : 0.9937         
+#                 95% CI : (0.991, 0.9957)
+#    No Information Rate : 0.2845         
+#    P-Value [Acc > NIR] : < 2.2e-16      
+                                         
+#                  Kappa : 0.992          
+# Mcnemar's Test P-Value : NA             
+
+#Statistics by Class:
+
+#                     Class: A Class: B Class: C Class: D Class: E
+#Sensitivity            1.0000   0.9863   0.9977   0.9851   0.9956
+#Specificity            0.9969   0.9995   0.9968   0.9990   0.9998
+#Pos Pred Value         0.9922   0.9979   0.9850   0.9950   0.9989
+#Neg Pred Value         1.0000   0.9967   0.9995   0.9971   0.9990
+#Prevalence             0.2845   0.1935   0.1743   0.1639   0.1837
+#Detection Rate         0.2845   0.1909   0.1739   0.1615   0.1829
+#Detection Prevalence   0.2867   0.1913   0.1766   0.1623   0.1831
+#Balanced Accuracy      0.9984   0.9929   0.9972   0.9920   0.9977
+
+As seen by the result of the confusionmatrix, the model is good and efficient because it has an accuracy of 0.994 and very good sensitivity & specificity values on the testing dataset. (the lowest value is 0.985 for the sensitivity of the class D)
+
+----
+
+##Performance on test data provided
+
+Load test data
+
+```{r}
+testingAll = read.csv("pml-testing.csv",na.strings=c("NA",""))
+#Only consider the columns that are also in trainData
+testing <- testingAll[ , which(names(testingAll) %in% names(trainData))] 
+dim(testing); # 20 observations and 52 variables
+```
+
+Run prediction
+
+```{r}
+pred <- predict(rffit, newdata = testing)
+table(pred)
+#pred
+#A B C D E 
+#7 8 1 1 3 
+ pred
+# [1] B A B A A E D B A A B C B A E E A B B B
+#Levels: A B C D E
+```
+
+After submitting these answers, it turns out that the model performed predictions very accurately, it correctly predicted 20 cases out of 20.
+
+
+
+
+
+
+
+
