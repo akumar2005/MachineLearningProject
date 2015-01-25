@@ -72,9 +72,6 @@ rffit<-train(trainData$classe~.,data=trainData, method="rf", trControl=fitContro
 
 ```{r, results='hide'}
 print(rffit) # Random Forest output
-```
-
-#Random Forest 
 
 #14718 samples
 #   52 predictor
@@ -95,6 +92,8 @@ print(rffit) # Random Forest output
 #Accuracy was used to select the optimal model using  the largest value.
 #The final value used for the model was mtry = 2. 
 
+```
+
 ----
 
 ##Prediction Outcome and Out-of-Sample Error
@@ -104,7 +103,6 @@ Now we can apply the model on the test data set.
 ```{r}
 predrf<-predict(rffit, newdata=testData)
 confusionMatrix(predrf, testData$classe)
-```
 
 #Confusion Matrix and Statistics
 
@@ -137,6 +135,7 @@ confusionMatrix(predrf, testData$classe)
 #Detection Rate         0.2845   0.1909   0.1739   0.1615   0.1829
 #Detection Prevalence   0.2867   0.1913   0.1766   0.1623   0.1831
 #Balanced Accuracy      0.9984   0.9929   0.9972   0.9920   0.9977
+```
 
 As seen by the result of the confusionmatrix, the model is good and efficient because it has an accuracy of 0.994 and very good sensitivity & specificity values on the testing dataset. (the lowest value is 0.985 for the sensitivity of the class D)
 
