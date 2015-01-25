@@ -62,7 +62,7 @@ dim(testData); # 4904   53
 
 ----
 
-## Predicion Process
+## Prediction Process
 Since we have a multitude of possible predictors, we decide to use random forest algorithm with all 52 predictor variables. Random forest trees were generated for the training dataset using 5-fold cross-validation. 
 
 ```{r}
