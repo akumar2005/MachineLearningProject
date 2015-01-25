@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Course Project Writeup</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Course Project Writeup">
+  <meta name="author" content="Ashish Kumar">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Course Project Writeup</h1>
+    <h2>for Practical Machine Learning on Cousera</h2>
+    <p>Ashish Kumar<br/>Research</p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Project Overview</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Data from participants who performed barbell lifts correctly and incorrectly in 5 different ways : information from belt, forearm, arm, and dumbbell accelerometers</li>
+<li>Two data sets : training group (19,622) observations and testing group (20 observations) </li>
+<li>Goal : predict the manner in which they did the exercise and apply the prediction model to predict 20 different test cases</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>Analysis Overview</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Data Pre-processing : (a) discard columns with missing values (b) selection of predictive variables</li>
+<li>Random Forest Approach for model training</li>
+<li>K-fold cross validation (k=5)</li>
+<li>Performance of predictive model</li>
+<li>Performance on test data</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>Data Pre-processing</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code>## Load the training data csv file
+</code></pre>
+
+<pre><code class="r">trainingAll &lt;- read.csv(&quot;pml-training.csv&quot;,na.strings=c(&quot;NA&quot;,&quot;&quot;)) ; dim(trainingAll);
+## [1] 19622   160
+
+# Discard columns with NAs
+NAs &lt;- apply(trainingAll, 2, function(x) { sum(is.na(x)) })
+training &lt;- trainingAll[, which(NAs == 0)] 
+dim(training);
+
+## [1] 19622   60
+
+</code></pre>
+
+<p>Remove the columns related to timestamps, the X column, user_name, new_window and num_window because they are not predictor variables.</p>
+
+<pre><code class="r">
+removeIndex &lt;- grep(&quot;timestamp|X|user_name|new_window|num_windwo&quot;, names(training))
+training &lt;- training[, -removeIndex]
+dim(training)
+# This leaves 52+1 target variables
+</code></pre>
+
+ </article>
+  <!-- Presenter Notes -->
+</slide>
+
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>Data Partitioning and Cross Validation</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Partition the cleaned data set by the classe variable to obtain a 75% training set and a 25% test set. </p>
+    
+    <pre><code class="r">
+set.seed(1333)
+library(caret)
+trainIndex &lt;- createDataPartition(y = training$classe, p=0.75,list=FALSE)
+trainData &lt;- training[trainIndex,]
+testData &lt;- training[-trainIndex,]
+dim(trainData); # 14718    53
+dim(testData); # 4904   53
+</code></pre>
+    
+<p>Now we have 53 predictors (another one is target variable) to build our model</p>    
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+
+<slide class="" id="slide-5" style="background:;">
+  <hgroup>
+    <h2>Training mechanism (cross-validation and random forest)</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>We use random forest algorithm with all 52 predictor variables to build the model. Random forest trees were generated for the training dataset using 5-fold cross-validation.</p>
+
+<pre><code class="r">
+fitControl=trainControl(method=&quot;cv&quot;, number=5, allowParallel=T, verbose=T)
+rffit &lt;- train(trainData$classe~.,data=trainData, method=&quot;rf&quot;, trControl=fitControl, verbose=F)
+print(rffit)
+</code></pre>
+
+<h3>Random Forest</h3>
+
+<ul>
+<li>14718 samples, 52 predictors, 5 classes: &#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#39;</li>
+<li>Accuracy:0.99, Kappa:0.99</li>
+
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+
+<slide class="" id="slide-6" style="background:;">
+  <hgroup>
+    <h2>Prediction outcome</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Now we can apply the model on the test data set. Confusion Matrix provides feedback about the performance of the predictive model.</p>
+
+<pre><code class="r">
+predrf &lt;-predict(rffit, newdata=testData)
+confusionMatrix(predrf, testData$classe)  
+
+#Confusion Matrix and Statistics
+#          Reference
+#Prediction    A    B    C    D    E
+#         A 1395   11    0    0    0
+#         B    0  936    2    0    0
+#         C    0    2  853   11    0
+#         D    0    0    0  792    4
+#         E    0    0    0    1  897
+                                         
+#               Accuracy : 0.9937         
+      
+</code></pre>
+
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-7" style="background:;">
+  <hgroup>
+    <h2>Performance on test data</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r"># Load test data
+testingAll = read.csv(&quot;pml-testing.csv&quot;,na.strings=c(&quot;NA&quot;,&quot;&quot;))
+
+# Only take the columns of testingAll that are also in trainData
+testing &lt;- testingAll[ , which(names(testingAll) %in% names(trainData))]
+dim(testing); # 20 observations and 52 variables
+
+# Run prediction
+pred &lt;- predict(rffit, newdata = testing)
+table(pred)
+#pred
+#A B C D E 
+#7 8 1 1 3 
+           
+</code></pre>
+
+
+<h4>The model performed predictions very accurately, it correctly predicted 20 cases out of 20.</h4>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+
+
+
+
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Project Overview '>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='Analysis Overview '>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='Data pre-processing'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Data Partitioning and Cross Validation'>
+         4
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=5 title='Training mechanism (cross-validation and random forest)'>
+         5
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=6 title='Prediction Outcome'>
+         6
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=7 title='Prediction on test data'>
+         7
+      </a>
+    </li>
+    <li>
+      
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
